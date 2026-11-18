@@ -1,56 +1,51 @@
-Certainly! Here is a README for the given code:
-WhatsApp Message Sender
+# WhatsApp Bot Platform
 
-This script sends a WhatsApp message to a specified phone number using the pywhatkit library.
-Prerequisites
+A full-stack WhatsApp messaging platform: scheduling, campaigns, contacts, templates, analytics, REST API, web dashboard, CLI, and background worker.
 
-    Python installed on your system.
-    pywhatkit library installed. You can install it using pip:
+## Features
 
-    bash
+- Multi-provider sending (pywhatkit, Twilio/Business API stubs)
+- Scheduled & instant messages, bulk send, campaigns
+- Contacts & groups, CSV import
+- Jinja2 message templates with variables
+- REST API (v1) with session + API keys
+- Web dashboard
+- Background scheduler with retries
+- Analytics & delivery logs
+- Real-time job updates via SocketIO
+- Docker & docker-compose
 
-    pip install pywhatkit
+## Quick Start
 
-Usage
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+python run.py
+```
 
-    Clone or download the repository:
+CLI:
 
-    bash
+```bash
+python -m app.cli users_create --email admin@example.com --password secret
+python -m app.cli send --phone +233505036932 --message "Hi"
+python -m app.cli stats
+```
 
-git clone Whatsapp_bot
-cd Whatsapp_bot
+Tests:
 
-Edit the script: Update the phone_number, message, hour, and minute variables in the script with the desired values.
+```bash
+python -m pytest tests  # if pytest installed
+# or
+python -m unittest discover -s tests
+```
 
-Run the script:
+## API
 
-bash
+Base: `/api/v1`. Endpoints: `/auth`, `/contacts`, `/messages`, `/campaigns`, `/schedules`, `/templates`, `/analytics`, `/health`.
 
-    python send_whatsapp_bot.py
+## Docker
 
-Example
-
-Here is an example of how to use the script:
-
-python
-
-import pywhatkit as kit
-
-# Phone number should include the country code
-phone_number = '+233505036932'
-message = "Hi"
-# Time in 24-hour format
-hour = 5
-minute = 19
-
-# Send the WhatsApp message
-kit.sendwhatmsg(phone_number, message, hour, minute)
-
-print("Message sent successfully!")
-
-In this example, the script will send a WhatsApp message saying "Hi" to the phone number +233505036932 at 05:19 AM.
-Notes
-
-    Ensure that your computer has an active internet connection.
-    Your WhatsApp Web must be logged in on the default web browser.
-    The script should be run a few minutes before the scheduled time to allow it to open the browser and send the message.
+```bash
+docker-compose up --build
+```
