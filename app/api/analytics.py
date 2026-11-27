@@ -1,9 +1,13 @@
+from datetime import timedelta
+
 from flask import Blueprint, request, jsonify
 from flask_login import current_user, login_required
+from werkzeug.exceptions import BadRequest
 
-from app.services.queue import QueueService
-from app.models.schedule import DeliveryLog, ScheduledJob
 from app.models.campaign import Campaign
+from app.models.schedule import DeliveryLog, ScheduledJob
+from app.services.queue import QueueService
+from app.utils import utcnow
 
 analytics_bp = Blueprint("analytics", __name__)
 queue = QueueService()
@@ -27,33 +31,32 @@ def summary():
 @analytics_bp.route("/timeline", methods=["GET"])
 @login_required
 def timeline():
-    days = int(request.args.get("days", 7))
-    from datetime import datetime, timedelta
-    since = datetime.utcnow() - timedelta(days=days)
+    try:
+        days = int(request.args.get("days", 7))
+    except ValueError:
+        raise BadRequest("days must be an integer")
+    if not 1 <= days <= 90:
+        raise BadRequest("days must be between 1 and 90")
+    since = utcnow() - timedelta(days=days)
     logs = DeliveryLog.query.filter(
         DeliveryLog.user_id == current_user.id, DeliveryLog.created_at >= since
     ).all()
     buckets = {}
-    for l in logs:
-        key = l.created_at.date().isoformat()
-        b = buckets.setdefault(key, {"success": 0, "failed": 0})
-        if l.status == "success":
-            b["success"] += 1
-        else:
-            b["failed"] += 1
-    return jsonify(buckets)
+    for entry in logs:
+        key = entry.created_at.date().isoformat()
+        bucket = buckets.setdefault(key, {"success": 0, "failed": 0})
+        bucket["success" if entry.status == "success" else "failed"] += 1
+    return jsonify({key: buckets[key] for key in sorted(buckets)})
 
 
 @analytics_bp.route("/providers", methods=["GET"])
 @login_required
 def providers_health():
     from app.services.sender import SenderService
-    names = ["pywhatkit", "twilio", "business_api"]
-    out = []
-    for n in names:
+    results = []
+    for name in ("pywhatkit", "twilio", "business_api"):
         try:
-            s = SenderService(n)
-            out.append(s.health())
-        except Exception as e:
-            out.append({"provider": n, "ok": False, "error": str(e)})
-    return jsonify(out)
+            results.append(SenderService(name).health())
+        except Exception as exc:
+            results.append({"provider": name, "ok": False, "error": str(exc)})
+    return jsonify(results)

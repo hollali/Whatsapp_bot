@@ -21,15 +21,18 @@ A full-stack WhatsApp messaging platform: scheduling, campaigns, contacts, templ
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
+# set a long random SECRET_KEY in .env before deploying
 python run.py
 ```
 
-CLI:
+CLI (arguments are positional; `schedule`, `import-contacts` and `stats` accept `--user`):
 
 ```bash
-python -m app.cli users_create --email admin@example.com --password secret
-python -m app.cli send --phone +233505036932 --message "Hi"
-python -m app.cli stats
+python -m app.cli users-create admin@example.com 'long-password'
+python -m app.cli send +233505036932 "Hi"
+python -m app.cli schedule +233505036932 "Follow up" 2026-12-01T10:00:00 --user admin@example.com
+python -m app.cli import-contacts contacts.csv --user admin@example.com
+python -m app.cli stats --user admin@example.com
 ```
 
 Tests:
@@ -44,8 +47,13 @@ python -m unittest discover -s tests
 
 Base: `/api/v1`. Endpoints: `/auth`, `/contacts`, `/messages`, `/campaigns`, `/schedules`, `/templates`, `/analytics`, `/health`.
 
+Browser requests use the logged-in session. Scripts can create a key via `POST /api/v1/auth/api-keys` and pass it as `Authorization: Bearer <key>` or `X-API-Key: <key>`. Keep the returned key safe; only its hash is stored.
+
 ## Docker
 
 ```bash
 docker-compose up --build
+docker-compose exec web flask db upgrade
 ```
+
+Set `AUTO_CREATE_TABLES=false` to rely on migrations only.

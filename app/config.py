@@ -1,16 +1,37 @@
 import os
 from datetime import timedelta
 
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv(path):
+        if not os.path.exists(path):
+            return
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    os.environ.setdefault(key.strip(), value.strip().strip('"\''))
+
+
 BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+    WTF_CSRF_ENABLED = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    RATE_LIMIT_ENABLED = os.environ.get("RATE_LIMIT_ENABLED", "true").lower() == "true"
+    MAX_BULK_JOBS = int(os.environ.get("MAX_BULK_JOBS", 500))
+    SOCKETIO_CORS_ORIGINS = [origin for origin in os.environ.get("SOCKETIO_CORS_ORIGINS", "").split(",") if origin] or None
+    ENABLE_SCHEDULER = os.environ.get("ENABLE_SCHEDULER", "true").lower() == "true"
+    AUTO_CREATE_TABLES = os.environ.get("AUTO_CREATE_TABLES", "true").lower() == "true"
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'whatsapp_bot.db')}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    WTF_CSRF_ENABLED = False
     MAIL_SERVER = os.environ.get("MAIL_SERVER")
     MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
     MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "true").lower() == "true"
@@ -41,6 +62,7 @@ class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     WTF_CSRF_ENABLED = False
+    RATE_LIMIT_ENABLED = False
 
 
 CONFIGS = {
@@ -52,4 +74,7 @@ CONFIGS = {
 
 def get_config():
     env = os.environ.get("APP_ENV", "development")
-    return CONFIGS.get(env, DevelopmentConfig)
+    cfg = CONFIGS.get(env, DevelopmentConfig)
+    if env == "production" and cfg.SECRET_KEY == "dev-secret-change-me":
+        raise RuntimeError("SECRET_KEY must be set in production")
+    return cfg

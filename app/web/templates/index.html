@@ -1,19 +1,170 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>WhatsApp Bot Platform</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-  <nav class="navbar navbar-dark bg-success">
-    <div class="container"><a class="navbar-brand" href="/">WhatsApp Bot Platform</a></div>
-  </nav>
-  <div class="container py-5 text-center">
-    <h1>WhatsApp Messaging Platform</h1>
-    <p class="lead">Schedule, manage and analyze WhatsApp campaigns.</p>
-    <a href="/login" class="btn btn-success me-2">Login</a>
-    <a href="/register" class="btn btn-outline-success">Register</a>
+{% extends "base.html" %}
+
+{% block title %}Wappulse — WhatsApp messaging, beautifully simple{% endblock %}
+{% block body_class %}landing{% endblock %}
+
+{% block body %}
+<nav class="site-nav" id="siteNav">
+  <div class="container">
+    <a class="brand" href="{{ url_for('web.index') }}">
+      <span class="brand-mark"><svg class="icon"><use href="#i-whatsapp"></use></svg></span>
+      Wappulse
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#analytics">Analytics</a>
+      <a href="#cta">Get started</a>
+    </div>
+    <div class="nav-actions">
+      <a href="{{ url_for('web.login') }}" class="btn btn-ghost btn-sm">Sign in</a>
+      <a href="{{ url_for('web.register') }}" class="btn btn-primary btn-sm">Start free <svg class="icon icon-sm"><use href="#i-arrow-right"></use></svg></a>
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu"><svg class="icon icon-lg"><use href="#i-menu"></use></svg></button>
+    </div>
   </div>
-</body>
-</html>
+</nav>
+
+<header class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="pill"><span class="pill-icon"><svg class="icon icon-sm"><use href="#i-sparkles"></use></svg></span> The WhatsApp growth toolkit</span>
+      <h1>Every message.<br><span class="gradient-text">Right on time.</span></h1>
+      <p class="hero-lead">Create campaigns, schedule broadcasts, and track every delivery from one calm, beautiful workspace. Less busywork, more conversations.</p>
+      <div class="hero-cta">
+        <a href="{{ url_for('web.register') }}" class="btn btn-primary">Start for free <svg class="icon icon-sm"><use href="#i-arrow-right"></use></svg></a>
+        <a href="#how" class="btn btn-outline"><svg class="icon icon-sm"><use href="#i-play"></use></svg> See how it works</a>
+      </div>
+      <div class="hero-trust">
+        <div class="trust-item"><strong>12M+</strong><span>Messages delivered</span></div>
+        <div class="trust-item"><strong>99.9%</strong><span>Uptime</span></div>
+        <div class="trust-item">
+          <div class="avatars"><span>AK</span><span>JM</span><span>TS</span><span>+2k</span></div>
+          <span style="margin-top:6px">Teams chatting daily</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="float-card float-one">
+        <span class="fi"><svg class="icon icon-sm"><use href="#i-check-circle"></use></svg></span>
+        <span><strong>Delivered</strong><small>Campaign “Welcome” · just now</small></span>
+      </div>
+      <div class="float-card float-two">
+        <span class="fi"><svg class="icon icon-sm"><use href="#i-chart"></use></svg></span>
+        <span><strong>+28% replies</strong><small>This week vs last week</small></span>
+      </div>
+      <div class="float-card float-three">
+        <span class="fi"><svg class="icon icon-sm"><use href="#i-clock"></use></svg></span>
+        <span><strong>3 scheduled</strong><small>Next: today, 4:30 PM</small></span>
+      </div>
+
+      <div class="chat-card">
+        <div class="chat-head">
+          <div class="chat-avatar"><svg class="icon"><use href="#i-whatsapp"></use></svg></div>
+          <div><strong>Acme Support</strong><small><span style="width:6px;height:6px;border-radius:50%;background:#86efac;display:inline-block"></span> online</small></div>
+          <svg class="icon"><use href="#i-more"></use></svg>
+        </div>
+        <div class="chat-body">
+          <div class="bubble bubble-in">Hi! Thanks for reaching out 👋 How can we help today?<time>09:41</time></div>
+          <div class="bubble bubble-out">I'd like to know more about your plans.<time>09:42</time></div>
+          <div class="bubble bubble-in">Happy to help! Our team plan includes unlimited campaigns, smart scheduling and live analytics.<time>09:43</time></div>
+          <div class="bubble bubble-out">That sounds perfect, thank you!<time>09:44</time></div>
+          <div class="typing"><i></i><i></i><i></i></div>
+        </div>
+        <div class="chat-input">
+          <svg class="icon icon-sm"><use href="#i-plus"></use></svg>
+          <span>Type a message…</span>
+          <span class="send-dot"><svg class="icon icon-sm"><use href="#i-send"></use></svg></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-head">
+      <span class="pill"><span class="pill-icon"><svg class="icon icon-sm"><use href="#i-zap"></use></svg></span> Built for teams that move</span>
+      <h2>Everything you need to<br>scale conversations</h2>
+      <p>From the first hello to the thousandth follow-up — one platform keeps your messaging sharp, timely and measurable.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature"><div class="feature-icon fi-green"><svg class="icon icon-lg"><use href="#i-send"></use></svg></div><h3>Instant &amp; bulk send</h3><p>Reach one contact or a whole list in seconds, with smart retries when a provider hiccups.</p></div>
+      <div class="feature"><div class="feature-icon fi-violet"><svg class="icon icon-lg"><use href="#i-calendar"></use></svg></div><h3>Smart scheduling</h3><p>Pick the perfect moment. Your messages go out on time, even when you're offline.</p></div>
+      <div class="feature"><div class="feature-icon fi-blue"><svg class="icon icon-lg"><use href="#i-megaphone"></use></svg></div><h3>Campaigns</h3><p>Launch targeted broadcasts to contact groups and watch the replies roll in.</p></div>
+      <div class="feature"><div class="feature-icon fi-amber"><svg class="icon icon-lg"><use href="#i-template"></use></svg></div><h3>Templates</h3><p>Personalize at scale with dynamic variables. Write once, send a thousand variations.</p></div>
+      <div class="feature"><div class="feature-icon fi-rose"><svg class="icon icon-lg"><use href="#i-chart"></use></svg></div><h3>Real analytics</h3><p>See delivery rates, timelines and provider health in a dashboard that makes sense.</p></div>
+      <div class="feature"><div class="feature-icon fi-slate"><svg class="icon icon-lg"><use href="#i-shield"></use></svg></div><h3>Reliable by default</h3><p>Multiple providers, automatic backoff and full delivery logs keep every message accounted for.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt" id="how">
+  <div class="container">
+    <div class="section-head">
+      <span class="pill"><span class="pill-icon"><svg class="icon icon-sm"><use href="#i-sparkles"></use></svg></span> Up and running in minutes</span>
+      <h2>Three steps to your<br>next conversation</h2>
+    </div>
+    <div class="steps">
+      <div class="step"><h3>Create your workspace</h3><p>Sign up in seconds and connect your preferred WhatsApp provider — no credit card required.</p></div>
+      <div class="step"><h3>Bring your contacts</h3><p>Add contacts one by one or import a CSV. Group them so the right message reaches the right people.</p></div>
+      <div class="step"><h3>Send &amp; measure</h3><p>Compose, schedule or launch a campaign, then follow performance live from your dashboard.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="analytics">
+  <div class="container">
+    <div class="dash-grid" style="margin-bottom:0">
+      <div class="card">
+        <div class="card-head"><div><div class="card-title">Your workspace at a glance</div><div class="card-sub">Live numbers from the dashboard</div></div><span class="badge badge-success"><i class="dot"></i> Live</span></div>
+        <div class="chart-wrap">
+          <div class="chart">
+            <div class="chart-col"><div class="chart-bars"><span class="chart-bar success" style="height:52%"></span><span class="chart-bar failed" style="height:10%"></span></div><span class="chart-label">Mon</span></div>
+            <div class="chart-col"><div class="chart-bars"><span class="chart-bar success" style="height:74%"></span><span class="chart-bar failed" style="height:16%"></span></div><span class="chart-label">Tue</span></div>
+            <div class="chart-col"><div class="chart-bars"><span class="chart-bar success" style="height:45%"></span><span class="chart-bar failed" style="height:8%"></span></div><span class="chart-label">Wed</span></div>
+            <div class="chart-col"><div class="chart-bars"><span class="chart-bar success" style="height:88%"></span><span class="chart-bar failed" style="height:12%"></span></div><span class="chart-label">Thu</span></div>
+            <div class="chart-col"><div class="chart-bars"><span class="chart-bar success" style="height:62%"></span><span class="chart-bar failed" style="height:6%"></span></div><span class="chart-label">Fri</span></div>
+            <div class="chart-col"><div class="chart-bars"><span class="chart-bar success" style="height:70%"></span><span class="chart-bar failed" style="height:14%"></span></div><span class="chart-label">Sat</span></div>
+            <div class="chart-col"><div class="chart-bars"><span class="chart-bar success" style="height:38%"></span><span class="chart-bar failed" style="height:4%"></span></div><span class="chart-label">Sun</span></div>
+          </div>
+          <div class="chart-legend" style="margin-top:18px;justify-content:center">
+            <span><i style="background:var(--brand)"></i> Delivered</span>
+            <span><i style="background:#f87171"></i> Failed</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;gap:18px">
+        <div class="card quick-stat"><span class="qi fi-green"><svg class="icon"><use href="#i-users"></use></svg></span><span><strong>2,480</strong><small>Contacts in your lists</small></span></div>
+        <div class="card quick-stat"><span class="qi fi-violet"><svg class="icon"><use href="#i-megaphone"></use></svg></span><span><strong>36</strong><small>Campaigns launched</small></span></div>
+        <div class="card quick-stat"><span class="qi fi-amber"><svg class="icon"><use href="#i-target"></use></svg></span><span><strong>94.2%</strong><small>Average delivery rate</small></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-band" id="cta">
+  <div class="container">
+    <div class="cta-inner">
+      <h2>Ready to start the conversation?</h2>
+      <p>Join thousands of teams turning WhatsApp into their most reliable channel. Free to begin, no strings attached.</p>
+      <a href="{{ url_for('web.register') }}" class="btn btn-light">Create your free account <svg class="icon icon-sm"><use href="#i-arrow-right"></use></svg></a>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <a class="brand" href="{{ url_for('web.index') }}"><span class="brand-mark"><svg class="icon"><use href="#i-whatsapp"></use></svg></span> Wappulse</a>
+    <p>© 2026 Wappulse. Crafted for better conversations.</p>
+    <div class="footer-links"><a href="#features">Features</a><a href="{{ url_for('web.login') }}">Sign in</a><a href="{{ url_for('web.register') }}">Get started</a></div>
+  </div>
+</footer>
+
+<script>
+  const navToggle = document.getElementById('navToggle');
+  const siteNav = document.getElementById('siteNav');
+  navToggle.addEventListener('click', () => siteNav.classList.toggle('open'));
+  siteNav.querySelectorAll('.nav-links a').forEach(a => a.addEventListener('click', () => siteNav.classList.remove('open')));
+</script>
+{% endblock %}

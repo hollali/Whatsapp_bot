@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
 
 from app.extensions import db
+from app.utils import utcnow
 
 
 class Template(db.Model):
@@ -12,8 +12,8 @@ class Template(db.Model):
     name = db.Column(db.String(120), nullable=False)
     body = db.Column(db.Text, nullable=False)
     variables = db.Column(db.String(255))  # comma-separated hint
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
     def to_dict(self):
         return {"id": self.id, "name": self.name, "body": self.body, "variables": self.variables}

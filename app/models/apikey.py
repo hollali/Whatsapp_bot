@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
 
 from app.extensions import db
+from app.utils import utcnow
 
 
 class ApiKey(db.Model):
@@ -13,7 +13,7 @@ class ApiKey(db.Model):
     key_hash = db.Column(db.String(255), nullable=False, unique=True)
     prefix = db.Column(db.String(12), nullable=False)
     last_used_at = db.Column(db.DateTime)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     revoked = db.Column(db.Boolean, default=False, nullable=False)
 
     def to_dict(self):

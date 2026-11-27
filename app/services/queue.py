@@ -1,17 +1,22 @@
-from datetime import datetime
+from flask import current_app
+from sqlalchemy import or_, update
 
 from app.extensions import db
-from app.models.schedule import ScheduledJob, DeliveryLog
+from app.models.campaign import Campaign
+from app.models.schedule import DeliveryLog, ScheduledJob
+from app.utils import utcnow
 
 
 class QueueService:
     def enqueue(self, user_id, phone, message, run_at=None, campaign_id=None, contact_id=None,
-                provider="pywhatkit", max_attempts=3):
+                provider="pywhatkit", max_attempts=None):
+        if max_attempts is None:
+            max_attempts = current_app.config.get("MAX_RETRIES", 3)
         job = ScheduledJob(
             user_id=user_id,
             phone=phone,
             message=message,
-            run_at=run_at or datetime.utcnow(),
+            run_at=run_at or utcnow(),
             campaign_id=campaign_id,
             contact_id=contact_id,
             provider=provider,
@@ -22,38 +27,48 @@ class QueueService:
         return job
 
     def cancel(self, job_id, user_id=None):
-        q = ScheduledJob.query.filter_by(id=job_id)
+        q = ScheduledJob.query.filter_by(id=job_id, status="pending")
         if user_id:
             q = q.filter_by(user_id=user_id)
         job = q.first()
         if not job:
             return False
-        if job.status in ("success", "failed", "cancelled"):
-            return False
         job.status = "cancelled"
         db.session.commit()
         return True
 
-    def retry(self, job_id):
-        job = ScheduledJob.query.get(job_id)
-        if not job:
+    def retry(self, job_id, user_id=None):
+        q = ScheduledJob.query.filter_by(id=job_id)
+        if user_id:
+            q = q.filter_by(user_id=user_id)
+        job = q.first()
+        if not job or job.status not in ("failed", "cancelled"):
             return None
         job.status = "pending"
         job.attempts = 0
         job.last_error = None
-        job.run_at = datetime.utcnow()
+        job.run_at = utcnow()
         db.session.commit()
         return job
 
-    def due_jobs(self, limit=50):
-        now = datetime.utcnow()
-        return (
-            ScheduledJob.query
-            .filter(ScheduledJob.status == "pending", ScheduledJob.run_at <= now)
-            .order_by(ScheduledJob.run_at.asc())
-            .limit(limit)
-            .all()
+    def claim(self, job_id):
+        result = db.session.execute(
+            update(ScheduledJob)
+            .where(ScheduledJob.id == job_id, ScheduledJob.status == "pending")
+            .values(status="running", started_at=utcnow(), attempts=ScheduledJob.attempts + 1)
         )
+        db.session.commit()
+        return result.rowcount == 1
+
+    def due_jobs(self, limit=50):
+        now = utcnow()
+        q = ScheduledJob.query.filter(
+            ScheduledJob.status == "pending", ScheduledJob.run_at <= now
+        )
+        paused = [c.id for c in Campaign.query.filter_by(status="paused").all()]
+        if paused:
+            q = q.filter(or_(ScheduledJob.campaign_id.is_(None), ScheduledJob.campaign_id.notin_(paused)))
+        return q.order_by(ScheduledJob.run_at.asc()).limit(limit).all()
 
     def log_delivery(self, job, status, error=None, duration_ms=None):
         entry = DeliveryLog(

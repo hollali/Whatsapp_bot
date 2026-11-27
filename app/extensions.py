@@ -11,7 +11,7 @@ migrate = Migrate()
 login_manager = LoginManager()
 mail = Mail()
 csrf = CSRFProtect()
-socketio = SocketIO(cors_allowed_origins="*", async_mode="threading")
+socketio = SocketIO(async_mode="threading")
 
 
 def init_extensions(app: Flask):
@@ -21,4 +21,4 @@ def init_extensions(app: Flask):
     login_manager.login_view = "web.login"
     mail.init_app(app)
     csrf.init_app(app)
-    socketio.init_app(app)
+    socketio.init_app(app, cors_allowed_origins=app.config.get("SOCKETIO_CORS_ORIGINS"))

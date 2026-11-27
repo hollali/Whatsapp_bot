@@ -1,55 +1,230 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-  <nav class="navbar navbar-dark bg-success">
-    <div class="container">
-      <a class="navbar-brand" href="/dashboard">WhatsApp Bot Platform</a>
-      <div><span class="text-white me-3">{{ user.name or user.email }}</span><a href="/logout" class="btn btn-sm btn-light">Logout</a></div>
-    </div>
-  </nav>
-  <div class="container py-4">
-    <h2>Dashboard</h2>
-    <div class="row g-3 mb-4">
-      <div class="col-md-3"><div class="card"><div class="card-body"><h6>Pending Jobs</h6><h3 id="pending">-</h3></div></div></div>
-      <div class="col-md-3"><div class="card"><div class="card-body"><h6>Sent</h6><h3 id="sent">-</h3></div></div></div>
-      <div class="col-md-3"><div class="card"><div class="card-body"><h6>Failed</h6><h3 id="failed">-</h3></div></div></div>
-      <div class="col-md-3"><div class="card"><div class="card-body"><h6>Campaigns</h6><h3 id="campaigns">-</h3></div></div></div>
-    </div>
-    <div class="card">
-      <div class="card-header">Quick Send</div>
-      <div class="card-body">
-        <form id="sendForm">
-          <div class="mb-2"><input class="form-control" name="phone" placeholder="+233..." required></div>
-          <div class="mb-2"><textarea class="form-control" name="message" placeholder="Message" required></textarea></div>
-          <button class="btn btn-success">Send Now</button>
-        </form>
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Wappulse{% endblock %}
+
+{% block body %}
+<div class="app">
+  <aside class="sidebar" id="sidebar" tabindex="0" title="Scroll with arrow keys">
+    <a class="brand" href="{{ url_for('web.index') }}"><span class="brand-mark"><svg class="icon"><use href="#i-whatsapp"></use></svg></span> Wappulse</a>
+
+    <div class="side-label">Workspace</div>
+    <nav>
+      <button class="nav-item active" data-view="overview"><svg class="icon"><use href="#i-grid"></use></svg> Overview</button>
+      <button class="nav-item" data-view="composer"><svg class="icon"><use href="#i-send"></use></svg> Compose</button>
+      <button class="nav-item" data-view="messages"><svg class="icon"><use href="#i-message-square"></use></svg> Messages</button>
+      <button class="nav-item" data-view="campaigns"><svg class="icon"><use href="#i-megaphone"></use></svg> Campaigns</button>
+      <button class="nav-item" data-view="contacts"><svg class="icon"><use href="#i-users"></use></svg> Contacts</button>
+      <button class="nav-item" data-view="templates"><svg class="icon"><use href="#i-template"></use></svg> Templates</button>
+      <button class="nav-item" data-view="schedules"><svg class="icon"><use href="#i-calendar"></use></svg> Schedules</button>
+    </nav>
+
+    <div class="side-label">Insights</div>
+    <nav>
+      <button class="nav-item" data-view="analytics"><svg class="icon"><use href="#i-chart"></use></svg> Analytics</button>
+      <button class="nav-item" data-view="settings"><svg class="icon"><use href="#i-settings"></use></svg> Settings</button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="side-plan">
+        <strong>Monthly usage</strong>
+        <p id="planUsage">Loading your usage…</p>
+        <div class="progress"><i id="planBar" style="width:0%"></i></div>
       </div>
+      <form method="post" action="{{ url_for('web.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="nav-item" type="submit"><svg class="icon"><use href="#i-logout"></use></svg> Sign out</button></form>
     </div>
+  </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <div class="app-main">
+    <header class="topbar">
+      <button class="menu-btn icon-btn" id="menuBtn" aria-label="Open menu"><svg class="icon"><use href="#i-menu"></use></svg></button>
+      <div class="topbar-search"><svg class="icon"><use href="#i-search"></use></svg><input id="globalSearch" type="search" placeholder="Search messages, contacts…"></div>
+      <div class="topbar-right">
+        <div class="dropdown" id="notifDropdown">
+          <button class="icon-btn" id="notifBtn" type="button" aria-label="Notifications" aria-expanded="false" aria-haspopup="true"><svg class="icon"><use href="#i-bell"></use></svg><span class="notif-dot" id="notifDot" hidden></span></button>
+          <div class="dropdown-menu" id="notifMenu" role="menu" aria-label="Notifications">
+            <div class="dropdown-head"><strong>Notifications</strong><button type="button" class="link" id="notifMarkRead">Mark all read</button></div>
+            <div class="dropdown-list" id="notifList"><div class="dropdown-empty">Loading…</div></div>
+          </div>
+        </div>
+        <div class="dropdown" id="userDropdown">
+          <button class="user-chip" id="userBtn" type="button" aria-expanded="false" aria-haspopup="true"><span class="user-avatar">{{ (user.name or user.email)[0]|upper }}</span><span class="user-meta"><strong>{{ user.name or 'Member' }}</strong><small>{{ user.email }}</small></span><svg class="icon"><use href="#i-chevron-down"></use></svg></button>
+          <div class="dropdown-menu" id="userMenu" role="menu" aria-label="Account">
+            <button class="dropdown-item" type="button" data-goto="settings"><svg class="icon icon-sm"><use href="#i-user"></use></svg> Profile &amp; settings</button>
+            <button class="dropdown-item" type="button" id="userApiKeys"><svg class="icon icon-sm"><use href="#i-lock"></use></svg> API keys</button>
+            <form method="post" action="{{ url_for('web.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="dropdown-item" type="submit"><svg class="icon icon-sm"><use href="#i-logout"></use></svg> Sign out</button></form>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard-content">
+
+      <!-- OVERVIEW -->
+      <section class="view active" id="view-overview">
+        <div class="page-head">
+          <div><h1 id="greeting">Welcome back 👋</h1><p id="todayLabel">Here's what's happening with your workspace.</p></div>
+          <div class="page-actions">
+            <button class="btn btn-outline btn-sm" onclick="loadOverview()"><svg class="icon icon-sm"><use href="#i-refresh"></use></svg> Refresh</button>
+            <button class="btn btn-primary btn-sm" data-goto="composer"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> New message</button>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat"><div class="stat-top"><span class="stat-icon fi-amber"><svg class="icon"><use href="#i-clock"></use></svg></span><span class="stat-trend" id="pendingTrend">queued</span></div><div class="stat-value" id="statPending">—</div><div class="stat-label">Pending jobs</div></div>
+          <div class="stat"><div class="stat-top"><span class="stat-icon fi-green"><svg class="icon"><use href="#i-check-circle"></use></svg></span><span class="stat-trend up"><svg class="icon icon-sm"><use href="#i-trend-up"></use></svg> live</span></div><div class="stat-value" id="statDelivered">—</div><div class="stat-label">Delivered</div></div>
+          <div class="stat"><div class="stat-top"><span class="stat-icon fi-rose"><svg class="icon"><use href="#i-x-circle"></use></svg></span><span class="stat-trend" style="color:var(--muted)">all time</span></div><div class="stat-value" id="statFailed">—</div><div class="stat-label">Failed</div></div>
+          <div class="stat"><div class="stat-top"><span class="stat-icon fi-violet"><svg class="icon"><use href="#i-megaphone"></use></svg></span><span class="stat-trend" style="color:var(--muted)">total</span></div><div class="stat-value" id="statCampaigns">—</div><div class="stat-label">Campaigns</div></div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="card">
+            <div class="card-head"><div><div class="card-title">Delivery activity</div><div class="card-sub">Messages delivered over the last 7 days</div></div><span class="badge badge-success"><i class="dot"></i> Live</span></div>
+            <div class="chart-wrap">
+              <div class="chart" id="overviewChart"></div>
+              <div class="chart-legend" style="margin-top:18px;justify-content:center"><span><i style="background:var(--brand)"></i> Delivered</span><span><i style="background:#f87171"></i> Failed</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div><div class="card-title">Provider health</div><div class="card-sub">Current provider status</div></div><svg class="icon" style="color:var(--muted)"><use href="#i-shield"></use></svg></div>
+            <div class="provider-list" id="overviewProviders"><div class="loading-line"></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div><div class="card-title">Recent messages</div><div class="card-sub">Latest jobs in your queue</div></div><button class="btn btn-ghost btn-sm" data-goto="messages">View all <svg class="icon icon-sm"><use href="#i-arrow-right"></use></svg></button></div>
+          <div class="table-wrap" tabindex="0" title="Scroll with arrow keys"><table class="data-table"><thead><tr><th>Recipient</th><th>Status</th><th>Attempts</th><th>Scheduled</th><th></th></tr></thead><tbody id="recentJobsBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- COMPOSER -->
+      <section class="view" id="view-composer">
+        <div class="page-head"><div><h1>Compose a message</h1><p>Send now or schedule for the perfect moment.</p></div></div>
+        <div class="dash-grid">
+          <div class="card">
+            <div class="card-head"><div class="card-title">New message</div><div class="segmented"><button class="active" data-mode="now">Send now</button><button data-mode="schedule">Schedule</button></div></div>
+            <form id="sendForm" class="composer-body">
+              <div class="form-grid">
+                <div class="form-field"><label for="phoneInput">Phone number</label><input class="form-control" id="phoneInput" name="phone" type="tel" inputmode="tel" placeholder="+233…" required><div class="form-hint">Include the country code, e.g. +233501234567.</div></div>
+                <div class="form-field"><label for="templateSelect">Template <span style="color:var(--muted);font-weight:500">(optional)</span></label><select class="form-control" id="templateSelect"><option value="">Write your own message</option></select></div>
+                <div class="form-field full" id="templateVarsField" hidden><label>Template variables</label><div class="var-grid" id="templateVarsFields"></div><div class="form-hint">Values are filled into the template before sending.</div></div>
+                <div class="form-field full"><div class="field-row"><label for="messageInput">Message</label><span class="char-count" id="messageCount">0 chars</span></div><textarea class="form-control" id="messageInput" name="message" placeholder="Type your message here…" rows="5" required></textarea><div class="form-hint" id="messageHint">Tip: keep it short and personal for better reply rates.</div></div>
+                <div class="form-field full" id="messagePreviewField" hidden><label>Preview</label><div class="message-preview" id="messagePreview"></div></div>
+                <div class="form-field full" id="scheduleGroup" style="display:none"><label for="runAtInput">Send at</label><input class="form-control" type="datetime-local" id="runAtInput"><div class="form-hint" id="scheduleHint">Times are interpreted in your local timezone.</div></div>
+                <div class="form-field full"><label for="providerSelect">Provider</label><select class="form-control" id="providerSelect"><option value="pywhatkit">pywhatkit</option><option value="twilio">Twilio</option><option value="business_api">Business API</option></select><div class="form-hint" id="providerHint">Provider availability is checked when you open Compose.</div></div>
+              </div>
+              <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px">
+                <button type="button" class="btn btn-outline" onclick="clearComposer()">Clear</button>
+                <button type="submit" class="btn btn-primary" id="sendSubmit"><svg class="icon icon-sm"><use href="#i-send"></use></svg> Send now</button>
+              </div>
+            </form>
+          </div>
+          <div style="display:grid;gap:18px;align-content:start">
+            <div class="card card-pad">
+              <div class="card-title" style="margin-bottom:12px">Quick tips</div>
+              <p style="font-size:12.5px;color:var(--ink-2);line-height:1.8">• Include the recipient's name when you can.<br>• Use a template for recurring updates.<br>• Schedule messages in the recipient's local time.<br>• Check delivery status in the Messages view.</p>
+            </div>
+            <div class="card quick-stat"><span class="qi fi-green"><svg class="icon"><use href="#i-zap"></use></svg></span><span><strong id="composerDelivered">0</strong><small>Messages delivered so far</small></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MESSAGES -->
+      <section class="view" id="view-messages">
+        <div class="page-head"><div><h1>Messages</h1><p>Every job in your outgoing queue.</p></div><div class="page-actions"><button class="btn btn-outline btn-sm" onclick="loadMessages()"><svg class="icon icon-sm"><use href="#i-refresh"></use></svg> Refresh</button><button class="btn btn-primary btn-sm" data-goto="composer"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> New message</button></div></div>
+        <div class="list-toolbar">
+          <div class="search-field"><svg class="icon"><use href="#i-search"></use></svg><input id="messagesSearch" type="search" placeholder="Search by phone…"></div>
+          <div class="filter-tabs" id="messageFilters">
+            <button class="active" data-filter="all">All</button><button data-filter="pending">Pending</button><button data-filter="running">Running</button><button data-filter="success">Delivered</button><button data-filter="failed">Failed</button><button data-filter="cancelled">Cancelled</button>
+          </div>
+        </div>
+        <div class="card"><div class="table-wrap" tabindex="0" title="Scroll with arrow keys"><table class="data-table"><thead><tr><th>Recipient</th><th>Status</th><th>Attempts</th><th>Scheduled</th><th style="text-align:right">Actions</th></tr></thead><tbody id="jobsBody"></tbody></table></div></div>
+      </section>
+
+      <!-- CAMPAIGNS -->
+      <section class="view" id="view-campaigns">
+        <div class="page-head"><div><h1>Campaigns</h1><p>Broadcast to your contact groups at scale.</p></div><button class="btn btn-primary btn-sm" id="newCampaignBtn"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> New campaign</button></div>
+        <div class="card"><div class="table-wrap" tabindex="0" title="Scroll with arrow keys"><table class="data-table"><thead><tr><th>Campaign</th><th>Status</th><th>Recipients</th><th>Sent</th><th>Failed</th><th style="text-align:right">Actions</th></tr></thead><tbody id="campaignsBody"></tbody></table></div></div>
+      </section>
+
+      <!-- CONTACTS -->
+      <section class="view" id="view-contacts">
+        <div class="page-head"><div><h1>Contacts</h1><p>People who can receive your messages.</p></div><div class="page-actions"><button class="btn btn-outline btn-sm" id="importContactsBtn"><svg class="icon icon-sm"><use href="#i-download"></use></svg> Import CSV</button><button class="btn btn-primary btn-sm" id="newContactBtn"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Add contact</button></div></div>
+        <div class="list-toolbar"><div class="search-field"><svg class="icon"><use href="#i-search"></use></svg><input id="contactsSearch" type="search" placeholder="Search contacts…"></div><select class="form-control group-filter" id="contactsGroupFilter"><option value="">All groups</option></select><input type="file" id="contactsCsv" accept=".csv,text/csv" hidden></div>
+        <div class="card"><div class="table-wrap" tabindex="0" title="Scroll with arrow keys"><table class="data-table"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead><tbody id="contactsBody"></tbody></table></div></div>
+      </section>
+
+      <!-- TEMPLATES -->
+      <section class="view" id="view-templates">
+        <div class="page-head"><div><h1>Templates</h1><p>Reusable messages with personal variables.</p></div><button class="btn btn-primary btn-sm" id="newTemplateBtn"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> New template</button></div>
+        <div class="card"><div class="table-wrap" tabindex="0" title="Scroll with arrow keys"><table class="data-table"><thead><tr><th>Name</th><th>Message</th><th>Variables</th><th style="text-align:right">Actions</th></tr></thead><tbody id="templatesBody"></tbody></table></div></div>
+      </section>
+
+      <!-- SCHEDULES -->
+      <section class="view" id="view-schedules">
+        <div class="page-head"><div><h1>Schedules</h1><p>Messages queued for a future time.</p></div><button class="btn btn-outline btn-sm" onclick="loadSchedules()"><svg class="icon icon-sm"><use href="#i-refresh"></use></svg> Refresh</button></div>
+        <div class="toolbar" style="margin-bottom:14px"><select id="schedulesStatusFilter" class="form-control" style="max-width:190px" aria-label="Filter schedules by status"><option value="">All statuses</option><option value="pending">Pending</option><option value="running">Running</option><option value="success">Delivered</option><option value="failed">Failed</option><option value="cancelled">Cancelled</option></select></div>
+        <div class="card"><div class="table-wrap" tabindex="0" title="Scroll with arrow keys"><table class="data-table"><thead><tr><th>Recipient</th><th>Status</th><th>Run at</th><th>Attempts</th><th style="text-align:right">Actions</th></tr></thead><tbody id="schedulesBody"></tbody></table></div></div>
+      </section>
+
+      <!-- ANALYTICS -->
+      <section class="view" id="view-analytics">
+        <div class="page-head"><div><h1>Analytics</h1><p>Delivery performance and provider reliability.</p></div><div class="filter-tabs" id="daysFilters"><button data-days="7" class="active">7 days</button><button data-days="14">14 days</button><button data-days="30">30 days</button></div></div>
+        <div class="stats-grid">
+          <div class="stat"><div class="stat-top"><span class="stat-icon fi-blue"><svg class="icon"><use href="#i-send"></use></svg></span></div><div class="stat-value" id="aTotal">—</div><div class="stat-label">Total deliveries</div></div>
+          <div class="stat"><div class="stat-top"><span class="stat-icon fi-green"><svg class="icon"><use href="#i-check-circle"></use></svg></span></div><div class="stat-value" id="aSuccess">—</div><div class="stat-label">Successful</div></div>
+          <div class="stat"><div class="stat-top"><span class="stat-icon fi-rose"><svg class="icon"><use href="#i-x-circle"></use></svg></span></div><div class="stat-value" id="aFailed">—</div><div class="stat-label">Failed</div></div>
+          <div class="stat"><div class="stat-top"><span class="stat-icon fi-violet"><svg class="icon"><use href="#i-target"></use></svg></span></div><div class="stat-value" id="aRate">—</div><div class="stat-label">Success rate</div></div>
+        </div>
+        <div class="dash-grid">
+          <div class="card"><div class="card-head"><div class="card-title">Delivery timeline</div><span class="badge badge-info" id="timelineRange">Last 7 days</span></div><div class="chart-wrap"><div class="chart" id="analyticsChart"></div><div class="chart-legend" style="margin-top:18px;justify-content:center"><span><i style="background:var(--brand)"></i> Delivered</span><span><i style="background:#f87171"></i> Failed</span></div></div></div>
+          <div class="card"><div class="card-head"><div class="card-title">Provider health</div></div><div class="provider-list" id="analyticsProviders"></div></div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view" id="view-settings">
+        <div class="page-head"><div><h1>Settings</h1><p>Your account details and developer access.</p></div></div>
+        <div class="dash-grid">
+          <div class="card card-pad"><div class="card-title" style="margin-bottom:20px">Profile</div><div class="form-grid">
+            <div class="form-field"><label>Name</label><input class="form-control" value="{{ user.name or '' }}" disabled></div>
+            <div class="form-field"><label>Email</label><input class="form-control" value="{{ user.email }}" disabled></div>
+          </div></div>
+          <div class="card card-pad"><div class="card-title" style="margin-bottom:16px">Account</div><p style="font-size:12.5px;color:var(--ink-2)">Member since {{ user.created_at.strftime('%b %d, %Y') if user.created_at else '—' }}.</p><form method="post" action="{{ url_for('web.logout') }}" style="margin-top:20px"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-outline btn-sm" type="submit"><svg class="icon icon-sm"><use href="#i-logout"></use></svg> Sign out</button></form></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div><div class="card-title">API keys</div><div class="card-sub">Use a key to call <code>/api/v1</code> from your own scripts.</div></div><button class="btn btn-primary btn-sm" id="newApiKeyBtn"><svg class="icon icon-sm"><use href="#i-plus"></use></svg> Create key</button></div>
+          <div class="key-reveal" id="keyReveal" hidden>
+            <strong>Copy your new key now — it won't be shown again.</strong>
+            <div class="key-reveal-row"><input class="form-control" id="keyRevealValue" readonly><button type="button" class="btn btn-outline btn-sm" id="keyRevealCopy"><svg class="icon icon-sm"><use href="#i-copy"></use></svg> Copy</button><button type="button" class="icon-btn" id="keyRevealClose" aria-label="Dismiss"><svg class="icon icon-sm"><use href="#i-x"></use></svg></button></div>
+          </div>
+          <div id="apiKeysBody"><div class="provider-list"><div class="loading-line"></div></div></div>
+        </div>
+      </section>
+
+    </main>
   </div>
-  <script>
-    async function load() {
-      const r = await fetch('/api/v1/analytics/summary', {credentials:'same-origin'});
-      if(!r.ok) return;
-      const d = await r.json();
-      document.getElementById('pending').textContent = d.pending_jobs;
-      document.getElementById('sent').textContent = d.delivery.success;
-      document.getElementById('failed').textContent = d.delivery.failed;
-      document.getElementById('campaigns').textContent = d.campaigns;
-    }
-    load();
-    document.getElementById('sendForm').addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const f = new FormData(e.target);
-      await fetch('/api/v1/messages/send', {method:'POST', credentials:'same-origin',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({phone:f.get('phone'), message:f.get('message')})});
-      e.target.reset(); load();
-    });
-  </script>
-</body>
-</html>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head"><h3 id="modalTitle">New item</h3><button class="icon-btn" id="modalClose" aria-label="Close"><svg class="icon icon-sm"><use href="#i-x"></use></svg></button></div>
+    <form id="modalForm"><div class="modal-body" id="modalFields" tabindex="0"></div>
+      <div class="modal-foot"><button type="button" class="btn btn-outline" id="modalCancel">Cancel</button><button type="submit" class="btn btn-primary" id="modalSubmit">Save</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="confirmBackdrop">
+  <div class="modal modal-sm" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-head"><h3 id="confirmTitle">Are you sure?</h3></div>
+    <div class="modal-body" id="confirmMessage"></div>
+    <div class="modal-foot"><button type="button" class="btn btn-outline" id="confirmCancel">Cancel</button><button type="button" class="btn btn-danger" id="confirmOk">Confirm</button></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js" async onload="window.initRealtime && window.initRealtime()" crossorigin="anonymous"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

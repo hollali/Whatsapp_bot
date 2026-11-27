@@ -1,10 +1,10 @@
 import uuid
-from datetime import datetime
 
-from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
+from app.utils import utcnow
 
 
 class User(UserMixin, db.Model):
@@ -16,8 +16,8 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(120))
     role = db.Column(db.String(32), default="user", nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
     contacts = db.relationship("Contact", backref="owner", lazy="dynamic", cascade="all, delete-orphan")
     templates = db.relationship("Template", backref="owner", lazy="dynamic", cascade="all, delete-orphan")

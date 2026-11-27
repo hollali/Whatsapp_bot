@@ -4,7 +4,14 @@ import logging
 import re
 import sys
 
-import pywhatkit as kit
+
+
+def _kit():
+    try:
+        import pywhatkit as kit
+    except ImportError as exc:
+        raise RuntimeError("pywhatkit is not installed; run 'pip install -r requirements.txt'") from exc
+    return kit
 
 
 def setup_logging(verbose=False):
@@ -27,6 +34,7 @@ def validate_time(hour, minute):
 
 
 def send_one(phone, message, hour, minute, instant, wait_time, close_tab, close_time):
+    kit = _kit()
     if instant or hour is None or minute is None:
         kit.sendwhatmsg_instantly(
             phone, message, wait_time=wait_time, tab_close=close_tab, close_time=close_time

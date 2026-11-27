@@ -1,10 +1,13 @@
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import timedelta
+
+from flask import current_app
 
 from app.extensions import db
 from app.services.queue import QueueService
 from app.services.sender import SenderService
+from app.utils import utcnow
 
 
 class Scheduler:
@@ -37,15 +40,41 @@ class Scheduler:
             self._stop.wait(self.interval)
 
     def _tick(self):
-        jobs = self.queue.due_jobs()
-        for job in jobs:
+        for job in self.queue.due_jobs():
             self._process(job)
 
+    def _emit(self, job, status):
+        try:
+            from app.extensions import socketio
+            socketio.emit("job_update", {
+                "id": job.id,
+                "status": status,
+                "phone": job.phone,
+                "campaign_id": job.campaign_id,
+            }, to="user:" + job.user_id)
+        except Exception:
+            pass
+
+    def _finalize_campaign(self, campaign_id):
+        if not campaign_id:
+            return
+        from app.models.campaign import Campaign
+        from app.models.schedule import ScheduledJob
+        campaign = Campaign.query.get(campaign_id)
+        if not campaign or campaign.status not in ("running", "scheduled"):
+            return
+        pending = ScheduledJob.query.filter_by(campaign_id=campaign_id).filter(
+            ScheduledJob.status.in_(("pending", "running"))
+        ).count()
+        if pending == 0:
+            campaign.status = "completed"
+            campaign.completed_at = utcnow()
+            db.session.commit()
+
     def _process(self, job):
-        job.status = "running"
-        job.started_at = datetime.utcnow()
-        job.attempts += 1
-        db.session.commit()
+        if not self.queue.claim(job.id):
+            return
+        db.session.refresh(job)
 
         sender = SenderService(job.provider)
         start = time.time()
@@ -53,40 +82,38 @@ class Scheduler:
             res = sender.send(job.phone, job.message)
             duration = res.get("duration_ms", int((time.time() - start) * 1000))
             job.status = "success"
-            job.finished_at = datetime.utcnow()
+            job.finished_at = utcnow()
             db.session.commit()
             self.queue.log_delivery(job, "success", duration_ms=duration)
 
             if job.campaign_id:
                 from app.models.campaign import Campaign
-                c = Campaign.query.get(job.campaign_id)
-                if c:
-                    c.sent += 1
+                campaign = Campaign.query.get(job.campaign_id)
+                if campaign:
+                    campaign.sent = Campaign.sent + 1
                     db.session.commit()
-            try:
-                from app.extensions import socketio
-                socketio.emit("job_update", job.to_dict())
-            except Exception:
-                pass
+            self._finalize_campaign(job.campaign_id)
+            self._emit(job, "success")
         except Exception as e:
             err = str(e)
             job.last_error = err
-            if job.attempts < job.max_attempts:
-                job.status = "pending"
-                job.run_at = datetime.utcnow() + timedelta(seconds=60 * job.attempts)
-            else:
+            terminal = job.attempts >= job.max_attempts
+            if terminal:
                 job.status = "failed"
-                job.finished_at = datetime.utcnow()
+                job.finished_at = utcnow()
+            else:
+                job.status = "pending"
+                backoff = current_app.config.get("RETRY_BACKOFF", 60)
+                job.run_at = utcnow() + timedelta(seconds=backoff * job.attempts)
             db.session.commit()
-            self.queue.log_delivery(job, "failed", error=err, duration_ms=int((time.time() - start) * 1000))
-            if job.campaign_id and job.status == "failed":
-                from app.models.campaign import Campaign
-                c = Campaign.query.get(job.campaign_id)
-                if c:
-                    c.failed += 1
-                    db.session.commit()
-            try:
-                from app.extensions import socketio
-                socketio.emit("job_update", job.to_dict())
-            except Exception:
-                pass
+            if terminal:
+                self.queue.log_delivery(job, "failed", error=err,
+                                        duration_ms=int((time.time() - start) * 1000))
+                if job.campaign_id:
+                    from app.models.campaign import Campaign
+                    campaign = Campaign.query.get(job.campaign_id)
+                    if campaign:
+                        campaign.failed = Campaign.failed + 1
+                        db.session.commit()
+                self._finalize_campaign(job.campaign_id)
+            self._emit(job, job.status)
